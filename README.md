@@ -1,4 +1,6 @@
-# Paperless-ngx + Email Meta Fields (Paperless-ngx-emf)
+# Paperless-ngx + Email Meta Fields (paperless-ngx-emf)
+
+[![Create and publish a Docker image](https://github.com/codeshell/paperless-ngx-emf/actions/workflows/build-and-push.yml/badge.svg)](https://github.com/codeshell/paperless-ngx-emf/actions/workflows/build-and-push.yml)
 
 ## What is this about?
 
@@ -35,14 +37,14 @@ For example:
 
 ```diff
 ---    image: ghcr.io/paperless-ngx/paperless-ngx:3.3
-+++    image: ghcr.io/codeshell/paperless-ngx:3.3
++++    image: ghcr.io/codeshell/paperless-ngx-emf:3.3
 ```
 
 or:
 
 ```diff
 ---    image: ghcr.io/paperless-ngx/paperless-ngx:latest
-+++    image: ghcr.io/codeshell/paperless-ngx:latest
++++    image: ghcr.io/codeshell/paperless-ngx-emf:latest
 ```
 
 ## Source data
