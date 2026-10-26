@@ -41,32 +41,26 @@ jobs:
             exit 1
           fi
       
-          GHCR_URL="https://ghcr.io/v2/paperless-ngx/paperless-ngx/tags/list"
+          GHCR_IMAGE="ghcr.io/paperless-ngx/paperless-ngx:${VERSION}"
           GITHUB_TAG_URL="https://api.github.com/repos/paperless-ngx/paperless-ngx/git/ref/tags/v${VERSION}"
-      
+
           echo "Checking GHCR tag '${VERSION}' exists..."
-          GHCR_STATUS=$(curl -fsSL -o /tmp/ghcr_tags.json -w '%{http_code}' "${GHCR_URL}" || true)
-          if [[ "${GHCR_STATUS}" != "200" ]]; then
-            echo "::error::GHCR tag check failed for paperless-ngx:${VERSION} (HTTP ${GHCR_STATUS})"
+          if ! docker manifest inspect "${GHCR_IMAGE}" >/dev/null 2>&1; then
+            echo "::error::GHCR image tag not found: ${GHCR_IMAGE}"
             exit 1
           fi
-      
-          if ! jq -e --arg v "${VERSION}" '.tags | index($v)' /tmp/ghcr_tags.json >/dev/null 2>&1; then
-            echo "::error::No matching GHCR tag found for 'paperless-ngx:${VERSION}'"
-            exit 1
-          fi
-      
+
           echo "Checking GitHub repo tag 'v${VERSION}' exists..."
           GITHUB_STATUS=$(curl -fsSL -o /tmp/github_tag.json -w '%{http_code}' \
             -H "Accept: application/vnd.github+json" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
             "${GITHUB_TAG_URL}" || true)
-      
+
           if [[ "${GITHUB_STATUS}" != "200" ]]; then
             echo "::error::GitHub tag 'v${VERSION}' does not exist for paperless-ngx/paperless-ngx (HTTP ${GITHUB_STATUS})"
             exit 1
           fi
-      
+
           echo "Validated that '${VERSION}' exists in both GHCR and the upstream GitHub repo."
           echo "upstream_version=${VERSION}" >> "$GITHUB_OUTPUT"
 
