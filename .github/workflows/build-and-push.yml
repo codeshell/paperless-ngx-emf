@@ -26,6 +26,59 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - name: Normalize input and validate upstream tag
+        shell: bash
+        env:
+          IMAGE_VERSION_INPUT: ${{ inputs.image_version }}
+        run: |
+          set -euo pipefail
+
+          VERSION="${IMAGE_VERSION_INPUT#v}"
+          echo "Original input: ${IMAGE_VERSION_INPUT}"
+          echo "Normalized version: ${VERSION}"
+
+          if [[ ! "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Invalid upstream version '${IMAGE_VERSION_INPUT}'. Expected format like '3.3.4' or 'v3.3.4'."
+            exit 1
+          fi
+
+          GHCR_URL="https://ghcr.io/v2/paperless-ngx/paperless-ngx/tags/list"
+          GITHUB_COMPARE_URL="https://github.com/paperless-ngx/paperless-ngx/compare/v${VERSION}"
+
+          echo "Checking GHCR tag '${VERSION}' exists..."
+          GHCR_STATUS=$(curl -fsSL -o /tmp/ghcr_tags.json -w '%{http_code}' "${GHCR_URL}" || true)
+          if [[ "${GHCR_STATUS}" != "200" ]]; then
+            echo "::error::GHCR tag check failed for paperless-ngx:${VERSION} (HTTP ${GHCR_STATUS})"
+            exit 1
+          fi
+
+          if ! jq -e --arg v "${VERSION}" '.tags | index($v)' /tmp/ghcr_tags.json >/dev/null 2>&1; then
+            echo "::error::No matching GHCR tag found for 'paperless-ngx:${VERSION}'"
+            exit 1
+          fi
+
+          echo "Checking GitHub repo tag 'v${VERSION}' exists..."
+          GITHUB_STATUS=$(curl -fsSL -o /tmp/github_compare.html -w '%{http_code}' "${GITHUB_COMPARE_URL}" || true)
+          if [[ "${GITHUB_STATUS}" != "200" ]]; then
+            echo "::error::GitHub tag 'v${VERSION}' does not exist for paperless-ngx/paperless-ngx (HTTP ${GITHUB_STATUS})"
+            exit 1
+          fi
+
+          echo "Validated that '${VERSION}' exists in both the GHCR image and the upstream GitHub repo tag."
+          echo "UPSTREAM_VERSION=${VERSION}" >> "$GITHUB_ENV"
+
+      - name: Show final image tags
+        shell: bash
+        run: |
+          VERSION="${UPSTREAM_VERSION}"
+          MAJOR="${VERSION%%.*}"
+          MINOR="${VERSION%.*}"
+          MINOR="${MINOR#*.}"
+          echo "## Docker image summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Upstream image tag: ${VERSION}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- GitHub tag: v${VERSION}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Final published tags: latest, ${VERSION}, ${MAJOR}.${MINOR}, ${MAJOR}" >> "$GITHUB_STEP_SUMMARY"
+
       - name: Log in to the Container registry
         uses: docker/login-action@v3
         with:
@@ -42,9 +95,9 @@ jobs:
             latest=false
           tags: |
             type=raw,value=latest
-            type=semver,pattern={{version}},value=${{ inputs.image_version }}
-            type=semver,pattern={{major}}.{{minor}},value=${{ inputs.image_version }}
-            type=semver,pattern={{major}},value=${{ inputs.image_version }}
+            type=semver,pattern={{version}},value=${{ env.UPSTREAM_VERSION }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ env.UPSTREAM_VERSION }}
+            type=semver,pattern={{major}},value=${{ env.UPSTREAM_VERSION }}
 
       - name: Build and push Docker image
         id: push
@@ -53,7 +106,7 @@ jobs:
           context: .
           push: true
           build-args: |
-            PATCH_IMAGETAG=${{ inputs.image_version }}
+            PATCH_IMAGETAG=${{ env.UPSTREAM_VERSION }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
