@@ -10,8 +10,8 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  # IMAGE_NAME: ${{ github.repository }}
-  IMAGE_NAME: codeshell/paperless-ngx
+  IMAGE_NAME: ${{ github.repository }}
+  # IMAGE_NAME: codeshell/paperless-ngx # This does not work with the default GH_TOKEN. Need a PAT for different names
 
 permissions:
   contents: read
