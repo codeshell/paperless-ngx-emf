@@ -74,7 +74,7 @@ That is often intended and even necessary as for reused documents like terms and
 
 Now, imagine again having those 1000 documents in Paperless-ngx consumed without context.
 
-A good portion of it will be unusable because you have tell where or to whom to what they belong.
+A good portion of it will be unusable because you have no means of telling where or to whom or to what they belong.
 Let's call them orphans.
 Even some of the documents that carry their own context within their content will be incomplete.
 Like loosing your sidecar files to the contract.
