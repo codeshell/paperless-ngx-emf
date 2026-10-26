@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       image_version:
-        description: 'Upstream image tag to be patched. Must be the version tag without "v". E.g. 3.0.0'
+        description: 'Upstream image tag to be patched without the leading "v". Example: 3.3.4'
         required: true
         type: string
 
@@ -12,7 +12,6 @@ env:
   REGISTRY: ghcr.io
   # IMAGE_NAME: ${{ github.repository }}
   IMAGE_NAME: codeshell/paperless-ngx
-  PATCH_IMAGETAG: ${{ inputs.image_version }}
 
 permissions:
   contents: read
@@ -39,6 +38,13 @@ jobs:
         uses: docker/metadata-action@v6
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          flavor: |
+            latest=false
+          tags: |
+            type=raw,value=latest
+            type=semver,pattern={{version}},value=${{ inputs.image_version }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ inputs.image_version }}
+            type=semver,pattern={{major}},value=${{ inputs.image_version }}
 
       - name: Build and push Docker image
         id: push
